@@ -17,20 +17,6 @@ pub struct FlowBatch<B: Backend> {
     pub u_target: Tensor<B, 4>, // (B, 1, 28, 28)
 }
 
-fn one_hot<B: Backend>(
-    labels: &Tensor<B, 1, Int>,
-    num_classes: usize,
-    device: &B::Device,
-) -> Tensor<B, 2> {
-    let batch = labels.dims()[0];
-    let zeros = Tensor::<B, 2>::zeros([batch, num_classes], device);
-    zeros.scatter(
-        1,
-        labels.clone().unsqueeze_dim(1),
-        Tensor::ones_like(&labels.clone().float().unsqueeze_dim::<2>(1)),
-    )
-}
-
 impl<B: Backend> Batcher<B, MnistItem, FlowBatch<B>> for FlowBatcher {
     fn batch(&self, items: Vec<MnistItem>, device: &B::Device) -> FlowBatch<B> {
         // Load and normalize MNIST images
@@ -61,7 +47,7 @@ impl<B: Backend> Batcher<B, MnistItem, FlowBatch<B>> for FlowBatcher {
             Tensor::<B, 1>::random([batch_size], Distribution::Uniform(0.0, 1.0), &device);
 
         // Build one-hot conditional embedding (B, 10)
-        let cond = one_hot(&labels, 10, &device);
+        let cond: Tensor<B, 2> = labels.float().one_hot(10);
 
         // Compute flow-matching trajectory (x, u_target)
         let (x, u_target) = gaussian_vector_field(&t, &z);

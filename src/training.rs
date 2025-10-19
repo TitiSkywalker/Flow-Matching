@@ -29,11 +29,7 @@ pub struct TrainingConfig {
     pub lr: f64,
 }
 
-pub fn run<B: AutodiffBackend>(device: &B::Device) {
-    // Create the configuration
-    println!("Create configurations");
-    let config = TrainingConfig::new();
-
+pub fn train<B: AutodiffBackend>(config: TrainingConfig, device: &B::Device) -> UNet<B> {
     B::seed(config.seed);
 
     // Create model and optimizer
@@ -101,4 +97,6 @@ pub fn run<B: AutodiffBackend>(device: &B::Device) {
             start_time.elapsed()
         ));
     }
+
+    return model;
 }

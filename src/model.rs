@@ -95,25 +95,24 @@ impl<B: Backend> ConvBlock<B> {
     }
 
     /// forward
-    /// - x: [batch, in_channels, H, W]
-    /// - time_emb: [batch, time_embed_dim]
-    /// - cond_emb: [batch, cond_embed_dim]
+    /// - x: [B, C, H, W]
+    /// - time_emb: [B, time_embed_dim]
+    /// - cond_emb: [B, cond_embed_dim]
     pub fn forward(
         &self,
         x: Tensor<B, 4>,
         time_emb: Tensor<B, 2>,
         cond_emb: Tensor<B, 2>,
     ) -> Tensor<B, 4> {
-        // project embeddings -> [batch, in_channels]
+        // project embeddings -> [B, C]
         let t = self.time_lin1.forward(time_emb);
         let t = self.relu.forward(t);
-        let t = self.time_lin2.forward(t); // [batch, in_channels]
-
+        let t = self.time_lin2.forward(t);
         let c = self.cond_lin1.forward(cond_emb);
         let c = self.relu.forward(c);
-        let c = self.cond_lin2.forward(c); // [batch, in_channels]
+        let c = self.cond_lin2.forward(c);
 
-        // reshape to [batch, in_channels, 1, 1] and broadcast add
+        // reshape to [B, C, 1, 1] and broadcast add
         let batch = x.dims()[0];
         let in_channels = x.dims()[1];
         let t_reshaped = t.reshape([batch, in_channels, 1, 1]);
@@ -176,9 +175,9 @@ impl<B: Backend> UNet<B> {
 
     pub fn forward(
         &self,
-        x: Tensor<B, 4>,
-        time_emb: Tensor<B, 2>,
-        cond_emb: Tensor<B, 2>,
+        x: Tensor<B, 4>,        // [B, C, H, W]
+        time_emb: Tensor<B, 2>, // [B, time_embed_dim]
+        cond_emb: Tensor<B, 2>, // [B, cond_embed_dim]
     ) -> Tensor<B, 4> {
         let x1 = self.down1.forward(x, time_emb.clone(), cond_emb.clone());
         let x = self.pool.forward(x1.clone());

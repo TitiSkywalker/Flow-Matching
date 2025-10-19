@@ -1,5 +1,5 @@
 [package]
-name = "gen_ai"
+name = "flow_matching"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,4 +7,5 @@ edition = "2024"
 burn = { version = "0.17.1", features = ["wgpu", "train", "vision"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-indicatif = "0.17"
+indicatif = "0.18"
+image = "0.25"
