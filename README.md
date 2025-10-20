@@ -1,4 +1,4 @@
-# Flow Matching Image Generation Model
+# Flow Matching for Image Generation
 
 ![alt text](./plot/sample.png)
 
