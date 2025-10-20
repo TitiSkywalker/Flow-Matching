@@ -19,7 +19,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 pub struct TrainingConfig {
     #[config(default = 10)]
     pub num_epochs: usize,
-    #[config(default = 4)]
+    #[config(default = 32)]
     pub batch_size: usize,
     #[config(default = 1)]
     pub num_workers: usize,
@@ -29,12 +29,16 @@ pub struct TrainingConfig {
     pub lr: f64,
 }
 
-pub fn train<B: AutodiffBackend>(config: TrainingConfig, device: &B::Device) -> UNet<B> {
+pub fn train<B: AutodiffBackend>(
+    config: TrainingConfig,
+    mut model: UNet<B>,
+    device: &B::Device,
+) -> UNet<B> {
     B::seed(config.seed);
 
     // Create model and optimizer
     println!("Create model and optimizer");
-    let mut model = UNet::<B>::init(1, 128, 10, &device);
+    // let mut model = UNet::<B>::init(1, 128, 10, &device);
     let mut optim = AdamConfig::new().init();
 
     // Create the batcher
@@ -47,6 +51,7 @@ pub fn train<B: AutodiffBackend>(config: TrainingConfig, device: &B::Device) -> 
         .batch_size(config.batch_size)
         .shuffle(config.seed)
         .num_workers(config.num_workers)
+        .set_device(device.clone())
         .build(MnistDataset::train());
     let total_batches = MnistDataset::train().len() / config.batch_size;
 
@@ -56,7 +61,7 @@ pub fn train<B: AutodiffBackend>(config: TrainingConfig, device: &B::Device) -> 
         let pb = ProgressBar::new(total_batches as u64);
         pb.set_style(
             ProgressStyle::with_template(
-                "{elapsed_precise} | ETA {eta_precise} [{bar:40.cyan/blue}] {pos}/{len} | loss={msg}",
+                "{elapsed_precise} < {eta_precise} [{bar:40.cyan/blue}] {pos}/{len} | loss={msg}",
             )
             .unwrap()
             .progress_chars("=> "),
@@ -90,12 +95,13 @@ pub fn train<B: AutodiffBackend>(config: TrainingConfig, device: &B::Device) -> 
             pb.inc(1);
         }
 
-        pb.finish_with_message(format!(
-            "epoch {} finished | avg_loss = {:.4} | time = {:.2?}",
+        pb.finish();
+        println!(
+            "epoch {} finished, avg loss = {:.4}, time = {:.2?}",
             epoch,
             running_loss / total_batches as f64,
             start_time.elapsed()
-        ));
+        );
     }
 
     return model;

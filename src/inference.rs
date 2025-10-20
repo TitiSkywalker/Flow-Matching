@@ -1,9 +1,14 @@
-use burn::tensor::Float;
-use burn::tensor::{Tensor, backend::Backend};
-use image::{GrayImage, Luma, Rgb, RgbImage};
+use std::fs;
+use std::path::Path;
 
 use crate::model::UNet;
 use crate::model::time_embedding;
+use burn::tensor::Float;
+use burn::tensor::{Tensor, backend::Backend};
+use image::GrayImage;
+use image::Luma;
+use image::imageops::FilterType;
+use image::{Rgb, RgbImage};
 
 pub fn guided_sampling_flow<B: Backend>(
     model: &UNet<B>,
@@ -33,18 +38,18 @@ pub fn guided_sampling_flow<B: Backend>(
     x.squeeze(0)
 }
 
-pub fn save_tensor_image<B: Backend>(tensor: &Tensor<B, 3>, path: &str) {
+pub fn save_tensor_image<B: Backend>(tensor: &Tensor<B, 3>, path: &str, scale: u32) {
+    if let Some(parent) = Path::new(path).parent() {
+        fs::create_dir_all(parent).expect("Failed to create directory");
+    }
+
     let data = tensor.clone().to_data();
     let values: Vec<f32> = data.clone().convert::<f32>().into_vec().unwrap();
     let shape = data.shape;
 
     assert!(shape.len() == 3, "Expected tensor of shape [C,H,W]");
     let (c, h, w) = (shape[0], shape[1], shape[2]);
-
-    let clipped: Vec<f32> = values
-        .into_iter()
-        .map(|v| v.clamp(0.0, 1.0)) // works in Rust 1.74+
-        .collect();
+    let clipped: Vec<f32> = values.into_iter().map(|v| v.clamp(0.0, 1.0)).collect();
 
     match c {
         1 => {
@@ -56,7 +61,13 @@ pub fn save_tensor_image<B: Backend>(tensor: &Tensor<B, 3>, path: &str) {
                     img.put_pixel(x as u32, y as u32, Luma([val]));
                 }
             }
-            img.save(path).expect("Failed to save grayscale image");
+            let upscaled = image::imageops::resize(
+                &img,
+                w as u32 * scale,
+                h as u32 * scale,
+                FilterType::Nearest,
+            );
+            upscaled.save(path).expect("Failed to save grayscale image");
         }
         3 => {
             let mut img = RgbImage::new(w as u32, h as u32);
@@ -69,7 +80,13 @@ pub fn save_tensor_image<B: Backend>(tensor: &Tensor<B, 3>, path: &str) {
                     img.put_pixel(x as u32, y as u32, Rgb([r, g, b]));
                 }
             }
-            img.save(path).expect("Failed to save RGB image");
+            let upscaled = image::imageops::resize(
+                &img,
+                w as u32 * scale,
+                h as u32 * scale,
+                FilterType::Nearest,
+            );
+            upscaled.save(path).expect("Failed to save RGB image");
         }
         _ => panic!("Only channel = 1 or 3 supported, got channel = {}", c),
     }

@@ -1,4 +1,6 @@
 #![recursion_limit = "256"]
+use std::path::Path;
+
 use burn::{
     backend::{Autodiff, Wgpu},
     module::Module,
@@ -21,23 +23,38 @@ fn main() {
     type MyBackend = Wgpu<f32, i32>;
     type MyAutodiffBackend = Autodiff<MyBackend>;
     let device = burn::backend::wgpu::WgpuDevice::default();
-
-    let model = train::<MyAutodiffBackend>(TrainingConfig::new(), &device);
-
+    let model_file = "./model/flow.mpk";
     let recorder = NamedMpkFileRecorder::<FullPrecisionSettings>::new();
-    model
-        .save_file("./model/flow.mpk", &recorder)
+
+    let mut model = UNet::<MyAutodiffBackend>::init(1, 128, 10, &device);
+    if Path::new(model_file).exists() {
+        println!("Resume from existing model");
+        model = UNet::<MyAutodiffBackend>::init(1, 128, 10, &device)
+            .load_file(model_file, &recorder, &device)
+            .expect("Failed to load model");
+    }
+
+    let trained_model = train::<MyAutodiffBackend>(TrainingConfig::new(), model, &device);
+
+    println!("Save trained model");
+    trained_model
+        .save_file(model_file, &recorder)
         .expect("Failed to save model");
 
-    let model = UNet::<MyBackend>::init(1, 128, 10, &device)
-        .load_file("./model/flow.mpk", &recorder, &device)
+    println!("Reload model for inference");
+    let infer_model = UNet::<MyBackend>::init(1, 128, 10, &device)
+        .load_file(model_file, &recorder, &device)
         .expect("Failed to load model");
 
+    println!("Generate samples");
     for number in 0..10 {
-        let image = guided_sampling_flow(&model, number, 100, &device);
+        println!("{number}");
+        let image = guided_sampling_flow(&infer_model, number, 100, &device);
         save_tensor_image(
             &image,
             &format!("./result/sample_{}.png", number).to_string(),
+            4,
         );
     }
+    println!("Finish");
 }
