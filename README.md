@@ -27,24 +27,20 @@ For Gaussian probability path, we can derive the **conditional Gaussian vector f
 
 \[u_t^{target}(x|z)=(\dot\alpha_t-\frac{\dot\beta_t}{\beta_t}\alpha_t)z + \frac{\dot\beta_t}{\beta_t}x\]
 
-Where $\dot \alpha_t$ and $\dot \beta_t$ are derivatives based on $t$. In my implementation, $\dot \alpha_t=1$ and $\dot \beta_t =-1$. So the above formula is equivalent to 
+Where $\dot \alpha_t$ and $\dot \beta_t$ are derivatives with respect to $t$. In my implementation, $\dot \alpha_t=1$ and $\dot \beta_t =-1$.
 
-\[u_t^{target}(x|z)=(1+\frac{t}{1-t})z - \frac{1}{1-t}x\]
-
-Since we do not have $z$ during the generation process, we can train a neural network that learns the vector field. We will train the network using the following loss function:
+Since $z$ is unknown during the generation process, we cannot get the vector fields directly. Instead, we train a neural network that learns the vector field. We will train the network using the following loss function:
 
 \[L(\theta) = \| u_t^{\theta}(x) - u_t^{target}(x|z)\|\]
 
-Where $t \sim U(0,1)$ and $x \sim p_t(\cdot|z)$. For a fixed target $z$, our network will learn a vector field that can transform any noise into $z$. After obtaining the vector field, we can simulate the ODE using **forward Euler** method:
+Where $t \sim U(0,1)$ and $x \sim p_t(\cdot|z)$. For a fixed target $z$, our network will learn a vector field that transforms any noise into $z$. After obtaining the vector field, we simulate the ODE using **forward Euler** method:
 
-\[x_{t+h} = x_t + h u_t^{\theta}(x_t)\]
+\[x_{t+h} = x_t + h u_t^{\theta}(x_t), x_0 \sim N(0, I)\]
 
-Now our algorithm works for only one target (i.e. we can only generate **exactly one** image). By randomly sampling targets from training dataset $z \sim p_{data}$, our model can generate samples subject to distribution $p_{data}$. 
+Our model now works for one target (i.e. we can only generate **exactly one** image). By randomly sampling targets from training dataset $z \sim p_{data}$, our model can generate samples subject to distribution $p_{data}$. 
 
 ### 1.2 Conditional Generation
-After previous steps, our model can generate samples from distribution $p_{data}$. For example if $p_{data}$ contains images of dogs, our model is a dog-generator. 
-
-If $p_{data}$ contains images of both dogs and cats, our model still works. However, we cannot specify which animal to generate. To put this formally, we can only generate a sample from $p_{data}$, and we cannot control the content. To achieve this goal, we will need a **prompt** $y$, which controls the target distribution:
+Currently, our model can generate samples from distribution $p_{data}$. If $p_{data}$ contains images of dogs, our model is a dog-generator. If $p_{data}$ contains images of both dogs and cats, our model still works. However, we cannot specify which animal to generate. To put this formally, we can only generate a sample from $p_{data}$, and we cannot control the content. To achieve this goal, we will need a **prompt** $y$, which controls the target distribution:
 
 \[z \sim p_{data}(\cdot|y)\]
 
