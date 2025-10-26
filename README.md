@@ -9,7 +9,7 @@ This repository implements an image generation model in Rust using the Burn fram
 ### 1.1 Flow Matching
 In flow matching, we model the generation process as a **conditional Gaussian probability path**. The "condition" is our target, and "probability path" describes how a random noise gradually converges into a fixed target.
 
-$$p_t(\cdot|z) = N(\alpha_t z, \beta_t^2 I_d), t \isin [0,1]$$
+$$p_t(\cdot|z) = N(\alpha_t z, \beta_t^2 I_d), t \in [0,1]$$
 
 Where $\alpha_t$ goes from 0 to 1, $\beta_t$ changes from 1 to 0, and $z$ is our target (e.g. a picture). In my implementation, I choose $\alpha_t = t$ and $\beta_t = 1-t$. There are two edge cases:
 
