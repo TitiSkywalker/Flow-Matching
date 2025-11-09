@@ -40,11 +40,11 @@ pub fn time_embedding<B: Backend>(
     let sin_part: Tensor<B, 2> = angle_pairs
         .clone()
         .select(2, Tensor::<B, 1, Int>::from_ints([0], device))
-        .squeeze(2)
+        .squeeze_dim(2)
         .sin();
     let cos_part: Tensor<B, 2> = angle_pairs
         .select(2, Tensor::<B, 1, Int>::from_ints([1], device))
-        .squeeze(2)
+        .squeeze_dim(2)
         .cos();
 
     // stack them into (batch, half, 2)
@@ -60,7 +60,7 @@ pub fn time_embedding<B: Backend>(
 pub struct ConvBlock<B: Backend> {
     conv1: Conv2d<B>,
     conv2: Conv2d<B>,
-    norm2: BatchNorm<B, 2>,
+    norm2: BatchNorm<B>,
     relu: Relu,
     // embedding MLPs
     time_lin1: Linear<B>,

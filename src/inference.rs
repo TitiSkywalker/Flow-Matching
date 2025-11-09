@@ -35,7 +35,7 @@ pub fn guided_sampling_flow<B: Backend>(
         x = x + u * step_size;
         t += step_size;
     }
-    x.squeeze(0)
+    x.squeeze_dim(0)
 }
 
 pub fn save_tensor_image<B: Backend>(tensor: &Tensor<B, 3>, path: &str, scale: u32) {

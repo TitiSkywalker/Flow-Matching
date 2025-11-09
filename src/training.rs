@@ -15,7 +15,7 @@ use burn::{
 };
 use indicatif::{ProgressBar, ProgressStyle};
 
-#[derive(Config)]
+#[derive(Config, Debug)]
 pub struct TrainingConfig {
     #[config(default = 10)]
     pub num_epochs: usize,
@@ -34,7 +34,7 @@ pub fn train<B: AutodiffBackend>(
     mut model: UNet<B>,
     device: &B::Device,
 ) -> UNet<B> {
-    B::seed(config.seed);
+    B::seed(device, config.seed);
 
     // Create model and optimizer
     println!("Create model and optimizer");
